@@ -1,0 +1,305 @@
+[
+  {
+    "id": "SYN-DOC-001",
+    "title": "Banking KYC Onboarding Form (India DPDP)",
+    "scenario": "Retail Banking Customer Onboarding",
+    "department": "Fintech & Banking Operations",
+    "compliance_scope": [
+      "India DPDP Act 2023",
+      "RBI KYC Norms"
+    ],
+    "is_synthetic": true,
+    "disclaimer": "ALL ENTITIES IN THIS DOCUMENT ARE RANDOMLY GENERATED SYNTHETIC TEST CASES. NO REAL INDIVIDUAL DATA IS PRESENT.",
+    "raw_text": "Customer Onboarding Dossier:\nApplicant Full Name: Aarav K. Sharma\nGuardian/Father: Ramesh Sharma\nDate of Birth: 14-Aug-1988\nPermanent Account Number (PAN): ABCPS1234K\nAadhaar Reference ID: 9012 3456 7890\nContact Number: +91 98765 43210\nPersonal Email: aarav.sharma.test@sampledomain.example\nResidential Address: Flat 402, Nilgiri Heights, MG Road, Bengaluru, Karnataka 560001\nPrimary Bank Account: 12345678901234 (IFSC: HDFC0001234)\nAnnual Declared Income: INR 18,50,000\nPurpose: Personal savings account creation under standard DPDP consent tier.",
+    "synthetic_entities": [
+      {
+        "entity": "Aarav K. Sharma",
+        "type": "PERSON_NAME",
+        "category": "DIRECT_IDENTIFIER",
+        "sensitivity": "HIGH"
+      },
+      {
+        "entity": "Ramesh Sharma",
+        "type": "PERSON_NAME",
+        "category": "DIRECT_IDENTIFIER",
+        "sensitivity": "MEDIUM"
+      },
+      {
+        "entity": "14-Aug-1988",
+        "type": "DATE_OF_BIRTH",
+        "category": "QUASI_IDENTIFIER",
+        "sensitivity": "MEDIUM"
+      },
+      {
+        "entity": "ABCPS1234K",
+        "type": "INDIAN_PAN",
+        "category": "GOVERNMENT_ID",
+        "sensitivity": "CRITICAL"
+      },
+      {
+        "entity": "9012 3456 7890",
+        "type": "INDIAN_AADHAAR",
+        "category": "GOVERNMENT_ID",
+        "sensitivity": "CRITICAL"
+      },
+      {
+        "entity": "+91 98765 43210",
+        "type": "PHONE_NUMBER",
+        "category": "CONTACT_INFO",
+        "sensitivity": "HIGH"
+      },
+      {
+        "entity": "aarav.sharma.test@sampledomain.example",
+        "type": "EMAIL_ADDRESS",
+        "category": "CONTACT_INFO",
+        "sensitivity": "HIGH"
+      },
+      {
+        "entity": "Flat 402, Nilgiri Heights, MG Road, Bengaluru, Karnataka 560001",
+        "type": "PHYSICAL_ADDRESS",
+        "category": "QUASI_IDENTIFIER",
+        "sensitivity": "HIGH"
+      },
+      {
+        "entity": "12345678901234",
+        "type": "BANK_ACCOUNT_NUM",
+        "category": "FINANCIAL_DATA",
+        "sensitivity": "CRITICAL"
+      },
+      {
+        "entity": "HDFC0001234",
+        "type": "IFSC_CODE",
+        "category": "FINANCIAL_DATA",
+        "sensitivity": "MEDIUM"
+      }
+    ],
+    "expected_redacted_text": "Customer Onboarding Dossier:\nApplicant Full Name: <TOKEN_PERSON_01>\nGuardian/Father: <TOKEN_PERSON_02>\nDate of Birth: <TOKEN_DOB_01>\nPermanent Account Number (PAN): <TOKEN_PAN_01>\nAadhaar Reference ID: <TOKEN_AADHAAR_01>\nContact Number: <TOKEN_PHONE_01>\nPersonal Email: <TOKEN_EMAIL_01>\nResidential Address: <TOKEN_ADDR_01>\nPrimary Bank Account: <TOKEN_BANK_01> (IFSC: <TOKEN_IFSC_01>)\nAnnual Declared Income: INR 18,50,000\nPurpose: Personal savings account creation under standard DPDP consent tier."
+  },
+  {
+    "id": "SYN-DOC-002",
+    "title": "Clinical Patient Consultation Notes (Healthcare)",
+    "scenario": "Telehealth Diagnostic Summary",
+    "department": "Digital Health / Clinical Informatics",
+    "compliance_scope": [
+      "India DPDP Act 2023",
+      "HIPAA Safe Harbor",
+      "NDHM Guidelines"
+    ],
+    "is_synthetic": true,
+    "disclaimer": "ALL CLINICAL DATA AND PATIENT DETAILS ARE ENTIRELY FICTITIOUS SYNTHETIC PROFILES CREATED FOR BENCHMARK EVALUATION.",
+    "raw_text": "Clinical Encounter Record (CONFIDENTIAL):\nPatient Name: Priya Sundaram\nABHA Health ID: 14-8902-3341-9011\nAge / Gender: 34 / Female\nAttending Physician: Dr. Rajeshwar Sen (Reg: KMC-99412)\nPrimary Diagnosis: Type 2 Diabetes Mellitus with mild peripheral neuropathy.\nPrescription: Metformin 500mg BD, Gabapentin 100mg nocte.\nEmergency Contact: Brother - Vikram Sundaram (+91 91234 56789)\nEmail: priya.sundaram.test@medclinic.example\nInsurance ID: STAR-HLTH-882901-X\nPhysician Notes: Patient expresses stress related to family health history. Baseline lipid panel and HbA1c scheduled for next visit.",
+    "synthetic_entities": [
+      {
+        "entity": "Priya Sundaram",
+        "type": "PERSON_NAME",
+        "category": "DIRECT_IDENTIFIER",
+        "sensitivity": "HIGH"
+      },
+      {
+        "entity": "14-8902-3341-9011",
+        "type": "ABHA_HEALTH_ID",
+        "category": "GOVERNMENT_ID",
+        "sensitivity": "CRITICAL"
+      },
+      {
+        "entity": "Dr. Rajeshwar Sen",
+        "type": "HEALTHCARE_PROVIDER",
+        "category": "DIRECT_IDENTIFIER",
+        "sensitivity": "LOW"
+      },
+      {
+        "entity": "Vikram Sundaram",
+        "type": "PERSON_NAME",
+        "category": "DIRECT_IDENTIFIER",
+        "sensitivity": "MEDIUM"
+      },
+      {
+        "entity": "+91 91234 56789",
+        "type": "PHONE_NUMBER",
+        "category": "CONTACT_INFO",
+        "sensitivity": "HIGH"
+      },
+      {
+        "entity": "priya.sundaram.test@medclinic.example",
+        "type": "EMAIL_ADDRESS",
+        "category": "CONTACT_INFO",
+        "sensitivity": "HIGH"
+      },
+      {
+        "entity": "STAR-HLTH-882901-X",
+        "type": "INSURANCE_POLICY_ID",
+        "category": "HEALTH_IDENTIFIER",
+        "sensitivity": "HIGH"
+      },
+      {
+        "entity": "Type 2 Diabetes Mellitus with mild peripheral neuropathy",
+        "type": "MEDICAL_DIAGNOSIS",
+        "category": "PROTECTED_HEALTH_INFO",
+        "sensitivity": "CRITICAL"
+      }
+    ],
+    "expected_redacted_text": "Clinical Encounter Record (CONFIDENTIAL):\nPatient Name: <TOKEN_PATIENT_01>\nABHA Health ID: <TOKEN_ABHA_01>\nAge / Gender: 34 / Female\nAttending Physician: <TOKEN_PHYSICIAN_01> (Reg: KMC-99412)\nPrimary Diagnosis: <TOKEN_DIAGNOSIS_01>.\nPrescription: Metformin 500mg BD, Gabapentin 100mg nocte.\nEmergency Contact: Brother - <TOKEN_PERSON_03> (<TOKEN_PHONE_02>)\nEmail: <TOKEN_EMAIL_02>\nInsurance ID: <TOKEN_INSURANCE_01>\nPhysician Notes: Patient expresses stress related to family health history. Baseline lipid panel and HbA1c scheduled for next visit."
+  },
+  {
+    "id": "SYN-DOC-003",
+    "title": "Enterprise HR Compensation & Performance Review",
+    "scenario": "Internal Executive Compensation Review",
+    "department": "Human Resources / People Operations",
+    "compliance_scope": [
+      "India DPDP Act 2023",
+      "GDPR Article 9"
+    ],
+    "is_synthetic": true,
+    "disclaimer": "SYNTHETIC HR PERFORMANCE RECORD. GENERATED STRICTLY FOR AI SAFETY AND MASKING VERIFICATION.",
+    "raw_text": "Quarterly Performance & Appraisal Summary:\nEmployee ID: EMP-884920\nEmployee Name: Rohan K. Deshmukh\nOfficial Email: rohan.deshmukh@corporatetest.example\nDesignation: Senior Principal Architect - Core Systems\nCurrent Base Salary: INR 44,00,000 / annum\nPerformance Bonus: INR 8,50,000 (Approved by VP HR)\nBank Account: 50100234901928 (Axis Bank, Indiranagar)\nPersonal PAN: DFGPD9921M\nManager Notes: Rohan demonstrated exemplary performance during system migration. Recommending promotion to Technical Fellow in upcoming cycle.",
+    "synthetic_entities": [
+      {
+        "entity": "EMP-884920",
+        "type": "EMPLOYEE_ID",
+        "category": "INTERNAL_ID",
+        "sensitivity": "MEDIUM"
+      },
+      {
+        "entity": "Rohan K. Deshmukh",
+        "type": "PERSON_NAME",
+        "category": "DIRECT_IDENTIFIER",
+        "sensitivity": "HIGH"
+      },
+      {
+        "entity": "rohan.deshmukh@corporatetest.example",
+        "type": "EMAIL_ADDRESS",
+        "category": "CONTACT_INFO",
+        "sensitivity": "HIGH"
+      },
+      {
+        "entity": "INR 44,00,000",
+        "type": "COMPENSATION_DATA",
+        "category": "FINANCIAL_DATA",
+        "sensitivity": "CRITICAL"
+      },
+      {
+        "entity": "INR 8,50,000",
+        "type": "COMPENSATION_DATA",
+        "category": "FINANCIAL_DATA",
+        "sensitivity": "CRITICAL"
+      },
+      {
+        "entity": "50100234901928",
+        "type": "BANK_ACCOUNT_NUM",
+        "category": "FINANCIAL_DATA",
+        "sensitivity": "CRITICAL"
+      },
+      {
+        "entity": "DFGPD9921M",
+        "type": "INDIAN_PAN",
+        "category": "GOVERNMENT_ID",
+        "sensitivity": "CRITICAL"
+      }
+    ],
+    "expected_redacted_text": "Quarterly Performance & Appraisal Summary:\nEmployee ID: <TOKEN_EMPID_01>\nEmployee Name: <TOKEN_PERSON_04>\nOfficial Email: <TOKEN_EMAIL_03>\nDesignation: Senior Principal Architect - Core Systems\nCurrent Base Salary: <TOKEN_FINANCIAL_01> / annum\nPerformance Bonus: <TOKEN_FINANCIAL_02> (Approved by VP HR)\nBank Account: <TOKEN_BANK_02> (Axis Bank, Indiranagar)\nPersonal PAN: <TOKEN_PAN_02>\nManager Notes: <TOKEN_PERSON_04> demonstrated exemplary performance during system migration. Recommending promotion to Technical Fellow in upcoming cycle."
+  },
+  {
+    "id": "SYN-DOC-004",
+    "title": "Customer Support Escalation with Accidental PII",
+    "scenario": "E-Commerce Payment Dispute",
+    "department": "Customer Support Operations",
+    "compliance_scope": [
+      "India DPDP Act 2023",
+      "PCI-DSS v4.0"
+    ],
+    "is_synthetic": true,
+    "disclaimer": "SYNTHETIC SUPPORT TICKET. TEST CARD NUMBERS COMPLY WITH INDUSTRY TEST PATTERNS.",
+    "raw_text": "Ticket #TC-2026-90412:\nCustomer Message: Hello Support, my order #ORD-99120 failed but my card was charged.\nMy registered phone is +91 97111 22334 and email is neha.gupta.test@domain.example.\nI paid using my Visa card ending in 4532-0192-8821-4019, Expiry 08/29.\nThe billing address is 12 Park Avenue, Sector 14, Gurugram, Haryana 122001.\nPlease refund the amount of INR 4,999 immediately.",
+    "synthetic_entities": [
+      {
+        "entity": "neha.gupta.test@domain.example",
+        "type": "EMAIL_ADDRESS",
+        "category": "CONTACT_INFO",
+        "sensitivity": "HIGH"
+      },
+      {
+        "entity": "+91 97111 22334",
+        "type": "PHONE_NUMBER",
+        "category": "CONTACT_INFO",
+        "sensitivity": "HIGH"
+      },
+      {
+        "entity": "4532-0192-8821-4019",
+        "type": "CREDIT_CARD_NUM",
+        "category": "FINANCIAL_DATA",
+        "sensitivity": "CRITICAL"
+      },
+      {
+        "entity": "12 Park Avenue, Sector 14, Gurugram, Haryana 122001",
+        "type": "PHYSICAL_ADDRESS",
+        "category": "QUASI_IDENTIFIER",
+        "sensitivity": "HIGH"
+      }
+    ],
+    "expected_redacted_text": "Ticket #TC-2026-90412:\nCustomer Message: Hello Support, my order #ORD-99120 failed but my card was charged.\nMy registered phone is <TOKEN_PHONE_03> and email is <TOKEN_EMAIL_04>.\nI paid using my Visa card ending in <TOKEN_CARD_01>, Expiry 08/29.\nThe billing address is <TOKEN_ADDR_02>.\nPlease refund the amount of INR 4,999 immediately."
+  },
+  {
+    "id": "SYN-DOC-005",
+    "title": "Vendor Contract & Corporate Procurement Agreement",
+    "scenario": "B2B SaaS Procurement",
+    "department": "Legal & Corporate Procurement",
+    "compliance_scope": [
+      "India DPDP Act 2023",
+      "Corporate Confidentiality"
+    ],
+    "is_synthetic": true,
+    "disclaimer": "SYNTHETIC PROCUREMENT RECORD. REPRESENTS ARTIFICIAL BUSINESS IDENTIFIERS.",
+    "raw_text": "Master Services Subcontract:\nClient: Apex Technologies Pvt Ltd (GSTIN: 29AAAAA0000A1Z5)\nAuthorized Signatory: Vikramaditya Roy (Director)\nSignatory Aadhaar: 8812 4432 1098\nSignatory Phone: +91 94567 89012\nOfficial Notice Email: legal-notices@apextech-sample.example\nRegistered Office: Brigade Gateway, 26/1 Dr Rajkumar Rd, Malleshwaram, Bengaluru 560055\nVendor Account for Wire Transfer: 91902004881920 (IFSC: ICIC0000002)",
+    "synthetic_entities": [
+      {
+        "entity": "29AAAAA0000A1Z5",
+        "type": "GSTIN_NUMBER",
+        "category": "CORPORATE_TAX_ID",
+        "sensitivity": "HIGH"
+      },
+      {
+        "entity": "Vikramaditya Roy",
+        "type": "PERSON_NAME",
+        "category": "DIRECT_IDENTIFIER",
+        "sensitivity": "HIGH"
+      },
+      {
+        "entity": "8812 4432 1098",
+        "type": "INDIAN_AADHAAR",
+        "category": "GOVERNMENT_ID",
+        "sensitivity": "CRITICAL"
+      },
+      {
+        "entity": "+91 94567 89012",
+        "type": "PHONE_NUMBER",
+        "category": "CONTACT_INFO",
+        "sensitivity": "HIGH"
+      },
+      {
+        "entity": "legal-notices@apextech-sample.example",
+        "type": "EMAIL_ADDRESS",
+        "category": "CONTACT_INFO",
+        "sensitivity": "HIGH"
+      },
+      {
+        "entity": "Brigade Gateway, 26/1 Dr Rajkumar Rd, Malleshwaram, Bengaluru 560055",
+        "type": "PHYSICAL_ADDRESS",
+        "category": "CORPORATE_ADDRESS",
+        "sensitivity": "MEDIUM"
+      },
+      {
+        "entity": "91902004881920",
+        "type": "BANK_ACCOUNT_NUM",
+        "category": "FINANCIAL_DATA",
+        "sensitivity": "CRITICAL"
+      },
+      {
+        "entity": "ICIC0000002",
+        "type": "IFSC_CODE",
+        "category": "FINANCIAL_DATA",
+        "sensitivity": "MEDIUM"
+      }
+    ],
+    "expected_redacted_text": "Master Services Subcontract:\nClient: Apex Technologies Pvt Ltd (GSTIN: <TOKEN_GSTIN_01>)\nAuthorized Signatory: <TOKEN_PERSON_05> (Director)\nSignatory Aadhaar: <TOKEN_AADHAAR_02>\nSignatory Phone: <TOKEN_PHONE_04>\nOfficial Notice Email: <TOKEN_EMAIL_05>\nRegistered Office: <TOKEN_ADDR_03>\nVendor Account for Wire Transfer: <TOKEN_BANK_03> (IFSC: <TOKEN_IFSC_02>)"
+  }
+]
