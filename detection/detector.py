@@ -6,7 +6,11 @@ from presidio_analyzer import AnalyzerEngine, RecognizerRegistry
 
 from detection.recognizers import (
     build_indian_recognizers,
-    validate_aadhaar
+    validate_aadhaar,
+    validate_pan,
+    validate_gstin,
+    validate_passport,
+    validate_voter_id
 )
 
 
@@ -62,9 +66,28 @@ class IndianPIIDetector:
         "US_DRIVER_LICENSE"
     }
 
-    def __init__(self):
+    INDIAN_ID_PATTERNS = {
+        "PAN": re.compile(r"\b[A-Z]{5}[0-9]{4}[A-Z]\b"),
+        "GSTIN": re.compile(
+            r"\b[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]\b"
+        ),
+        "AADHAAR": re.compile(
+            r"\b[2-9][0-9]{3}\s?[0-9]{4}\s?[0-9]{4}\b"
+        ),
+        "PASSPORT": re.compile(r"\b[A-PR-WY][0-9]{7}\b"),
+        "VOTER_ID": re.compile(r"\b[A-Z]{3}[0-9]{7}\b")
+    }
 
-        self.nlp = spacy.load("en_core_web_lg")
+    ID_VALIDATORS = {
+        "PAN": validate_pan,
+        "GSTIN": validate_gstin,
+        "AADHAAR": validate_aadhaar,
+        "PASSPORT": validate_passport,
+        "VOTER_ID": validate_voter_id
+    }
+
+    def __init__(self):
+        self.nlp = spacy.load("en_core_web_sm")
 
         self.registry = RecognizerRegistry()
         self.registry.load_predefined_recognizers()
@@ -216,11 +239,36 @@ class IndianPIIDetector:
 
         return names
 
+    def detect_indian_ids(self, text):
+
+        findings = []
+
+        for entity_type, pattern in self.INDIAN_ID_PATTERNS.items():
+
+            validator = self.ID_VALIDATORS[entity_type]
+
+            for match in pattern.finditer(text):
+
+                value = match.group()
+
+                if not validator(value):
+                    continue
+
+                findings.append({
+                    "entity_type": entity_type,
+                    "text": value,
+                    "value": value,
+                    "start": match.start(),
+                    "end": match.end(),
+                    "score": 1.0
+                })
+
+        return findings
+
     def detect(self, text):
 
         detections = []
 
-        # 1. Address detection
         address_detections = self.detect_addresses(text)
 
         address_spans = [
@@ -228,7 +276,6 @@ class IndianPIIDetector:
             for item in address_detections
         ]
 
-        # 2. Explicit name detection
         explicit_names = self.detect_explicit_names(text)
 
         explicit_name_spans = [
@@ -238,7 +285,10 @@ class IndianPIIDetector:
 
         detections.extend(explicit_names)
 
-        # 3. Presidio detection
+        # Direct Indian ID detection
+        detections.extend(self.detect_indian_ids(text))
+
+        # Presidio detection
         results = self.analyzer.analyze(
             text=text,
             language="en"
@@ -285,12 +335,13 @@ class IndianPIIDetector:
             detections.append({
                 "entity_type": result.entity_type,
                 "text": detected_text,
+                "value": detected_text,
                 "start": result.start,
                 "end": result.end,
                 "score": round(result.score, 2)
             })
 
-        # 4. spaCy person detection
+        # spaCy person detection
         doc = self.nlp(text)
 
         for entity in doc.ents:
@@ -323,15 +374,15 @@ class IndianPIIDetector:
             detections.append({
                 "entity_type": "PERSON",
                 "text": entity.text,
+                "value": entity.text,
                 "start": start,
                 "end": end,
                 "score": 0.75
             })
 
-        # 5. Add address detections
         detections.extend(address_detections)
 
-        # 6. Resolve overlapping detections
+        # Remove duplicate and overlapping detections
         priority = {
             "AADHAAR": 10,
             "PAN": 10,
@@ -369,23 +420,74 @@ class IndianPIIDetector:
         )
 
 
-if __name__ == "__main__":
+class PIIDetector:
 
-    detector = IndianPIIDetector()
+    FINANCIAL_PATTERNS = {
+        "INCOME": re.compile(
+            r"\b(?:monthly\s+)?(?:income|salary|earnings)"
+            r"\b.{0,20}?(?:₹|Rs\.?|INR)?\s*"
+            r"(\d+(?:,\d{2,3})*(?:\.\d{1,2})?)",
+            re.IGNORECASE
+        ),
+        "EMI": re.compile(
+            r"\b(?:monthly\s+)?(?:EMI|instalment|installment)"
+            r"\b.{0,20}?(?:₹|Rs\.?|INR)?\s*"
+            r"(\d+(?:,\d{2,3})*(?:\.\d{1,2})?)",
+            re.IGNORECASE
+        ),
+        "AGE": re.compile(
+            r"\bage\s*(?:is|of|:|=)?\s*"
+            r"(\d{1,3})"
+            r"(?:\s*(?:years?\s*old|years?|yrs?))?",
+            re.IGNORECASE
+        )
+    }
 
-    sample = """
-Customer John Smith lives at:
-Flat 12B, 2nd Cross,
-Vijayanagar, Bengaluru, Karnataka 560040.
+    def __init__(self):
+        self.indian_detector = IndianPIIDetector()
 
-PAN: ABCPE1234F
-"""
+    def detect(self, text):
 
-    findings = detector.detect(sample)
+        detections = self.indian_detector.detect(text)
 
-    print("\nPRIVACYGUARD AI - PII DETECTION RESULTS\n")
+        for entity in detections:
+            entity["value"] = entity.get(
+                "value",
+                entity.get("text", text[entity["start"]:entity["end"]])
+            )
 
-    for finding in findings:
-        print(finding)
+        financial_candidates = []
 
-    print("\nTotal detections:", len(findings))
+        for entity_type, pattern in self.FINANCIAL_PATTERNS.items():
+
+            for match in pattern.finditer(text):
+
+                start, end = match.span(1)
+
+                if entity_type == "AGE":
+                    end = match.end()
+
+                value = match.group(1).replace(",", "")
+
+                financial_candidates.append({
+                    "entity_type": entity_type,
+                    "start": start,
+                    "end": end,
+                    "score": 1.0,
+                    "value": value
+                })
+
+        for candidate in financial_candidates:
+
+            overlaps = any(
+                candidate["start"] < item["end"]
+                and candidate["end"] > item["start"]
+                for item in detections
+            )
+
+            if not overlaps:
+                detections.append(candidate)
+
+        detections.sort(key=lambda item: item["start"])
+
+        return detections

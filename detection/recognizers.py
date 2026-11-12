@@ -199,3 +199,67 @@ def build_indian_recognizers():
     )
 
     return recognizers
+
+
+
+class IndianPIIRecognizers:
+
+    PATTERNS = {
+        "PAN": r"\b[A-Z]{5}[0-9]{4}[A-Z]\b",
+        "GSTIN": r"\b[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]\b",
+        "AADHAAR": r"\b[2-9][0-9]{3}\s?[0-9]{4}\s?[0-9]{4}\b",
+        "PASSPORT": r"\b[A-PR-WYa-pr-wy][0-9]{7}\b",
+        "VOTER_ID": r"\b[A-Z]{3}[0-9]{7}\b"
+    }
+
+    def detect(self, text):
+        findings = []
+
+        validators = {
+            "PAN": validate_pan,
+            "GSTIN": validate_gstin,
+            "AADHAAR": validate_aadhaar,
+            "PASSPORT": validate_passport,
+            "VOTER_ID": validate_voter_id
+        }
+
+        for entity_type, pattern in self.PATTERNS.items():
+            for match in re.finditer(pattern, text):
+                value = match.group()
+
+                if not validators[entity_type](value):
+                    continue
+
+                findings.append({
+                    "entity_type": entity_type,
+                    "start": match.start(),
+                    "end": match.end(),
+                    "score": 1.0,
+                    "value": value
+                })
+
+        return findings
+
+    @staticmethod
+    def validate_pan(value):
+        return validate_pan(value)
+
+    @staticmethod
+    def validate_aadhaar(value):
+        return validate_aadhaar(value)
+
+    @staticmethod
+    def verhoeff_check(number):
+        return validate_aadhaar(number)
+
+    @staticmethod
+    def validate_gstin(value):
+        return validate_gstin(value)
+
+    @staticmethod
+    def validate_passport(value):
+        return validate_passport(value)
+
+    @staticmethod
+    def validate_voter_id(value):
+        return validate_voter_id(value)
