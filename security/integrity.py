@@ -1,4 +1,6 @@
+
 import re
+import json
 import hashlib
 import hmac
 
@@ -24,6 +26,26 @@ class PlaceholderIntegrity:
             placeholders,
             secret
         )
+
+        return hmac.compare_digest(expected, signature)
+
+    def sign_mapping(self, mapping, secret):
+
+        payload = json.dumps(
+            sorted(mapping.items()),
+            ensure_ascii=False,
+            separators=(",", ":")
+        ).encode("utf-8")
+
+        return hmac.new(
+            secret.encode("utf-8"),
+            payload,
+            hashlib.sha256
+        ).hexdigest()
+
+    def verify_mapping(self, mapping, signature, secret):
+
+        expected = self.sign_mapping(mapping, secret)
 
         return hmac.compare_digest(expected, signature)
 

@@ -1,3 +1,4 @@
+
 class FinancialTransformer:
 
     @staticmethod
@@ -32,12 +33,34 @@ class FinancialTransformer:
     @staticmethod
     def emi_to_income_ratio(emi, income):
 
-        if income <= 0:
+        if income <= 0 or emi < 0:
             return None
 
         ratio = (emi / income) * 100
 
         return round(ratio, 2)
+
+    @staticmethod
+    def emi_ratio_band(emi, income):
+
+        ratio = FinancialTransformer.emi_to_income_ratio(
+            emi,
+            income
+        )
+
+        if ratio is None:
+            return "Unknown"
+
+        if ratio < 20:
+            return "Low EMI burden"
+
+        if ratio < 40:
+            return "Moderate EMI burden"
+
+        if ratio < 50:
+            return "High EMI burden"
+
+        return "Very high EMI burden"
 
     @staticmethod
     def transform(entity_type, value):
@@ -59,3 +82,32 @@ class FinancialTransformer:
             return "Unknown"
 
         return value
+
+    @staticmethod
+    def assess_finances(income, emi):
+
+        try:
+            income = float(income)
+            emi = float(emi)
+
+            if income <= 0 or emi < 0:
+                return {
+                    "income_band": "Unknown",
+                    "emi_burden": "Unknown"
+                }
+
+            return {
+                "income_band": FinancialTransformer.income_band(
+                    income
+                ),
+                "emi_burden": FinancialTransformer.emi_ratio_band(
+                    emi,
+                    income
+                )
+            }
+
+        except (ValueError, TypeError):
+            return {
+                "income_band": "Unknown",
+                "emi_burden": "Unknown"
+            }

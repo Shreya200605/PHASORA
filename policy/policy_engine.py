@@ -1,3 +1,4 @@
+
 class PolicyEngine:
 
     ACTIONS = {
@@ -8,29 +9,81 @@ class PolicyEngine:
         "BLOCK"
     }
 
-    def __init__(self):
-        self.default_policy = {
+    DEFAULT_POLICY = {
+        "PERSON": "MASK",
+        "PHONE_NUMBER": "MASK",
+        "EMAIL_ADDRESS": "MASK",
+        "AADHAAR": "MASK",
+        "PAN": "MASK",
+        "GSTIN": "MASK",
+        "PASSPORT": "MASK",
+        "VOTER_ID": "MASK",
+        "ADDRESS": "GENERALIZE",
+        "AGE": "GENERALIZE",
+        "INCOME": "TRANSFORM",
+        "EMI": "MASK"
+    }
+
+    PURPOSE_POLICIES = {
+
+        "loan": {
             "PERSON": "MASK",
-            "PHONE_NUMBER": "MASK",
-            "EMAIL_ADDRESS": "MASK",
-            "AADHAAR": "MASK",
             "PAN": "MASK",
+            "AADHAAR": "MASK",
+            "INCOME": "TRANSFORM",
+            "EMI": "TRANSFORM",
+            "AGE": "GENERALIZE",
+            "ADDRESS": "GENERALIZE"
+        },
+
+        "kyc": {
+            "PERSON": "MASK",
+            "PAN": "MASK",
+            "AADHAAR": "MASK",
             "GSTIN": "MASK",
             "PASSPORT": "MASK",
             "VOTER_ID": "MASK",
             "ADDRESS": "GENERALIZE",
+            "INCOME": "MASK",
+            "EMI": "MASK"
+        },
+
+        "customer_support": {
+            "PERSON": "MASK",
+            "PHONE_NUMBER": "MASK",
+            "EMAIL_ADDRESS": "MASK",
+            "ADDRESS": "GENERALIZE",
+            "PAN": "MASK",
+            "AADHAAR": "MASK",
+            "INCOME": "MASK",
+            "EMI": "MASK"
+        },
+
+        "insurance": {
+            "PERSON": "MASK",
+            "PAN": "MASK",
+            "AADHAAR": "MASK",
             "AGE": "GENERALIZE",
-            "INCOME": "TRANSFORM"
+            "INCOME": "TRANSFORM",
+            "EMI": "TRANSFORM",
+            "ADDRESS": "GENERALIZE"
         }
+    }
 
     def get_action(self, entity_type, purpose="general"):
 
         entity_type = entity_type.upper()
+        purpose = purpose.lower().strip()
 
-        if entity_type in self.default_policy:
-            action = self.default_policy[entity_type]
-        else:
-            action = "MASK"
+        purpose_policy = self.PURPOSE_POLICIES.get(
+            purpose,
+            {}
+        )
+
+        action = purpose_policy.get(
+            entity_type,
+            self.DEFAULT_POLICY.get(entity_type, "MASK")
+        )
 
         if action not in self.ACTIONS:
             return "BLOCK"
@@ -43,7 +96,10 @@ class PolicyEngine:
 
         for entity in detected_entities:
 
-            entity_type = entity.get("entity_type", "UNKNOWN")
+            entity_type = entity.get(
+                "entity_type",
+                "UNKNOWN"
+            )
 
             action = self.get_action(
                 entity_type,
@@ -53,7 +109,8 @@ class PolicyEngine:
             decisions.append({
                 "entity_type": entity_type,
                 "value": entity.get("value", ""),
-                "action": action
+                "action": action,
+                "purpose": purpose
             })
 
         return decisions

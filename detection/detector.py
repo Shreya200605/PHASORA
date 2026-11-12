@@ -1,4 +1,6 @@
 
+import re
+
 from presidio_analyzer import AnalyzerEngine
 from presidio_analyzer.nlp_engine import NlpEngineProvider
 
@@ -31,6 +33,30 @@ class PIIDetector:
         "NAME"
     }
 
+    FINANCIAL_PATTERNS = {
+
+        "INCOME": re.compile(
+            r"\b(?:monthly\s+)?(?:income|salary|earnings)"
+            r"\b.{0,20}?(?:₹|Rs\.?|INR)?\s*"
+            r"(\d+(?:,\d{2,3})*(?:\.\d{1,2})?)",
+            re.IGNORECASE
+        ),
+
+        "EMI": re.compile(
+            r"\b(?:monthly\s+)?(?:EMI|instalment|installment)"
+            r"\b.{0,20}?(?:₹|Rs\.?|INR)?\s*"
+            r"(\d+(?:,\d{2,3})*(?:\.\d{1,2})?)",
+            re.IGNORECASE
+        ),
+
+        "AGE": re.compile(
+            r"\bage\s*(?:is|of|:|=)?\s*"
+            r"(\d{1,3})"
+            r"(?:\s*(?:years?\s*old|years?|yrs?))?",
+            re.IGNORECASE
+        )
+    }
+
     def __init__(self):
 
         configuration = {
@@ -60,12 +86,48 @@ class PIIDetector:
 
         indian_entities = self.indian_recognizer.detect(text)
 
+        financial_candidates = []
+
+        for entity_type, pattern in self.FINANCIAL_PATTERNS.items():
+
+            for match in pattern.finditer(text):
+
+                number_start, number_end = match.span(1)
+
+                start = number_start
+                end = number_end
+
+                if entity_type in {"INCOME", "EMI"}:
+
+                    prefix = text[match.start():number_start]
+
+                    currency_match = re.search(
+                        r"\?*\s*(?:₹|Rs\.?|INR)\s*$",
+                        prefix,
+                        re.IGNORECASE
+                    )
+
+                    if currency_match:
+                        start = match.start() + currency_match.start()
+
+                elif entity_type == "AGE":
+                    end = match.end()
+
+                financial_candidates.append({
+                    "entity_type": entity_type,
+                    "start": start,
+                    "end": end,
+                    "score": 1.0,
+                    "value": match.group(1).replace(",", "")
+                })
+
         results = self.analyzer.analyze(
             text=text,
             language="en"
         )
 
         candidates = list(indian_entities)
+        candidates.extend(financial_candidates)
 
         for result in results:
 
@@ -74,19 +136,36 @@ class PIIDetector:
 
             value = text[result.start:result.end]
 
+            if result.entity_type == "DATE_TIME":
+
+                if value.strip().lower() in {
+                    "monthly",
+                    "daily",
+                    "weekly",
+                    "yearly",
+                    "annually"
+                }:
+                    continue
+
             if (
                 result.entity_type == "PERSON"
                 and value.strip().upper() in self.LABEL_WORDS
             ):
                 continue
 
-            overlaps_indian_identifier = any(
+            overlaps_indian = any(
                 result.start < entity["end"]
                 and result.end > entity["start"]
                 for entity in indian_entities
             )
 
-            if overlaps_indian_identifier:
+            overlaps_financial = any(
+                result.start < entity["end"]
+                and result.end > entity["start"]
+                for entity in financial_candidates
+            )
+
+            if overlaps_indian or overlaps_financial:
                 continue
 
             candidates.append({

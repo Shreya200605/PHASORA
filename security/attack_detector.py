@@ -1,3 +1,4 @@
+
 import re
 
 
@@ -34,4 +35,3 @@ class PlaceholderAttackDetector:
             )
 
         return True
-        

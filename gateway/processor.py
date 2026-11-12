@@ -1,6 +1,8 @@
 
 import time
 import uuid
+import os
+import secrets
 
 from policy.policy_engine import PolicyEngine
 from policy.financial_transform import FinancialTransformer
@@ -21,6 +23,11 @@ class GatewayProcessor:
         self.privacy_controller = PrivacyController()
         self.receipt_generator = PrivacyReleaseReceipt()
 
+        self.hmac_secret = (
+            os.getenv("PHASORA_HMAC_SECRET")
+            or secrets.token_hex(32)
+        )
+
     def process(self, user_prompt, purpose="general"):
 
         request_id = str(uuid.uuid4())
@@ -29,19 +36,47 @@ class GatewayProcessor:
         mapping = {}
 
         try:
-            # Step 1: Detect PII
             detected_entities = self.detector.detect(user_prompt)
 
-            # Step 2: Evaluate privacy policies
             decisions = self.policy_engine.evaluate(
                 detected_entities,
                 purpose
             )
 
-            # Step 3: Prepare replacements
             replacements = []
             placeholder_counters = {}
             placeholder_cache = {}
+
+            normalized_purpose = purpose.lower().strip()
+
+            income_entities = [
+                entity for entity in detected_entities
+                if entity["entity_type"].upper() == "INCOME"
+            ]
+
+            emi_entities = [
+                entity for entity in detected_entities
+                if entity["entity_type"].upper() == "EMI"
+            ]
+
+            financial_pair = None
+
+            if (
+                normalized_purpose in {"loan", "insurance"}
+                and len(income_entities) == 1
+                and len(emi_entities) == 1
+            ):
+
+                financial_pair = self.transformer.assess_finances(
+                    income_entities[0]["value"],
+                    emi_entities[0]["value"]
+                )
+
+                if (
+                    financial_pair["income_band"] == "Unknown"
+                    or financial_pair["emi_burden"] == "Unknown"
+                ):
+                    financial_pair = None
 
             for entity, decision in zip(
                 detected_entities,
@@ -61,6 +96,7 @@ class GatewayProcessor:
                     continue
 
                 if action == "MASK":
+
                     replacement = self._create_placeholder(
                         entity_type,
                         value,
@@ -70,19 +106,27 @@ class GatewayProcessor:
                     )
 
                 elif action == "TRANSFORM":
-                    replacement = self.transformer.transform(
-                        entity_type,
-                        value
-                    )
 
-                    if str(replacement) == value:
-                        replacement = self._create_placeholder(
+                    if entity_type == "INCOME" and financial_pair:
+                        replacement = financial_pair["income_band"]
+
+                    elif entity_type == "EMI" and financial_pair:
+                        replacement = financial_pair["emi_burden"]
+
+                    else:
+                        replacement = self.transformer.transform(
                             entity_type,
-                            value,
-                            mapping,
-                            placeholder_counters,
-                            placeholder_cache
+                            value
                         )
+
+                        if str(replacement) == value or entity_type == "EMI":
+                            replacement = self._create_placeholder(
+                                entity_type,
+                                value,
+                                mapping,
+                                placeholder_counters,
+                                placeholder_cache
+                            )
 
                 elif action == "GENERALIZE":
 
@@ -91,6 +135,15 @@ class GatewayProcessor:
                             entity_type,
                             value
                         )
+
+                        if str(replacement) == value:
+                            replacement = self._create_placeholder(
+                                entity_type,
+                                value,
+                                mapping,
+                                placeholder_counters,
+                                placeholder_cache
+                            )
 
                     elif entity_type == "ADDRESS":
                         replacement = "generalized location"
@@ -105,6 +158,7 @@ class GatewayProcessor:
                         )
 
                 else:
+
                     replacement = self._create_placeholder(
                         entity_type,
                         value,
@@ -119,7 +173,6 @@ class GatewayProcessor:
                     str(replacement)
                 ))
 
-            # Step 4: Apply replacements without changing offsets
             selected = []
             last_end = -1
 
@@ -141,24 +194,28 @@ class GatewayProcessor:
                     + sanitized_prompt[end:]
                 )
 
-            # Step 5: Check outbound payload
             outbound_security = (
                 self.privacy_controller.validate_outbound(
-                    sanitized_prompt
+                    sanitized_prompt,
+                    detected_entities,
+                    decisions
                 )
             )
 
             if not outbound_security["approved"]:
-                raise ValueError(
-                    outbound_security["reason"]
-                )
+                raise ValueError(outbound_security["reason"])
 
-            # Step 6: Send sanitized prompt to LLM
+            mapping_signature = (
+                self.privacy_controller.integrity.sign_mapping(
+                    mapping,
+                    self.hmac_secret
+                )
+            )
+
             llm_response = self.llm_client.generate(
                 sanitized_prompt
             )
 
-            # Step 7: Validate returned placeholders
             response_security = (
                 self.privacy_controller.validate_response(
                     llm_response,
@@ -171,13 +228,29 @@ class GatewayProcessor:
                     "LLM response failed placeholder security checks."
                 )
 
-            # Step 8: Restore only verified placeholders
+            mapping_verified = (
+                self.privacy_controller.integrity.verify_mapping(
+                    mapping,
+                    mapping_signature,
+                    self.hmac_secret
+                )
+            )
+
+            response_security["mapping_integrity"] = {
+                "safe": mapping_verified,
+                "algorithm": "HMAC-SHA256"
+            }
+
+            if not mapping_verified:
+                raise ValueError(
+                    "Placeholder mapping integrity verification failed."
+                )
+
             final_response = self.reinserter.restore(
                 llm_response,
                 mapping
             )
 
-            # Step 9: Generate privacy receipt
             latency_ms = round(
                 (time.perf_counter() - start_time) * 1000,
                 2
@@ -198,6 +271,9 @@ class GatewayProcessor:
 
             receipt["purpose"] = purpose
             receipt["latency_ms"] = latency_ms
+            receipt["mapping_integrity"] = (
+                "VERIFIED" if mapping_verified else "FAILED"
+            )
 
             return {
                 "request_id": request_id,
@@ -212,7 +288,6 @@ class GatewayProcessor:
             }
 
         finally:
-            # Remove request-specific PII mappings
             mapping.clear()
 
     @staticmethod
@@ -229,9 +304,7 @@ class GatewayProcessor:
         if key in cache:
             return cache[key]
 
-        counters[entity_type] = (
-            counters.get(entity_type, 0) + 1
-        )
+        counters[entity_type] = counters.get(entity_type, 0) + 1
 
         placeholder = (
             f"<{entity_type}_{counters[entity_type]}>"
