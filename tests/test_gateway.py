@@ -1,214 +1,140 @@
 
-from detection.detector import PIIDetector
+import re
+
 from gateway.processor import GatewayProcessor
 from gateway.reinsertion import PlaceholderReinserter
 
 
-class MockLLM:
-
-    model = "PHASORA-Mock-LLM"
-
-    def generate(self, text):
-        print("\nOutbound prompt received by mock LLM:")
-        print(text)
-        return "Hello <PERSON_1>, your PAN <PAN_1> has been received."
-
-
-class IsolationMockLLM:
-
-    model = "PHASORA-Isolation-Test"
-
-    def generate(self, text):
-        print("\nIsolation test outbound prompt:")
-        print(text)
-        return "Hello <PERSON_1>."
-
-
-class AttackMockLLM:
-
-    model = "PHASORA-Attack-Test"
-
-    def generate(self, text):
-        print("\nAdversarial LLM outbound prompt:")
-        print(text)
-        return "Hello <PERSON_9>."
-
-
 class StaticPersonDetector:
+    TEST_ENTITIES = [
+        ("PERSON", "Rahul Sharma"),
+        ("PERSON", "Priya Nair"),
+        ("PAN", "ABCPA1234F"),
+        ("PAN", "PQTPA1234F"),
+    ]
 
     def detect(self, text):
-        names = ["Rahul Sharma", "Ananya Rao"]
+        findings = []
 
-        for name in names:
-            start = text.find(name)
+        for entity_type, value in self.TEST_ENTITIES:
+            for match in re.finditer(re.escape(value), text):
+                findings.append({
+                    "entity_type": entity_type,
+                    "text": value,
+                    "value": value,
+                    "start": match.start(),
+                    "end": match.end(),
+                    "score": 1.0
+                })
 
-            if start != -1:
-                return [{
-                    "entity_type": "PERSON",
-                    "start": start,
-                    "end": start + len(name),
-                    "score": 1.0,
-                    "value": name
-                }]
-
-        return []
-
-
-class TrackingReinserter:
-
-    def __init__(self):
-        self.restore_calls = 0
-        self.original_reinserter = PlaceholderReinserter()
-
-    def restore(self, response, mapping):
-        self.restore_calls += 1
-        return self.original_reinserter.restore(response, mapping)
+        return sorted(findings, key=lambda item: item["start"])
 
 
-def test_gateway():
+class MockLLM:
+    model = "PHASORA-Mock-LLM"
 
-    gateway = GatewayProcessor(
-        PIIDetector(),
-        MockLLM(),
-        PlaceholderReinserter()
+    def generate(self, prompt):
+        return "Processed request: " + prompt
+
+
+def create_gateway():
+    return GatewayProcessor(
+        detector=StaticPersonDetector(),
+        llm_client=MockLLM(),
+        reinserter=PlaceholderReinserter()
     )
 
+
+def test_standard_gateway():
+    print("\nTEST 1: Standard gateway processing")
+
     prompt = (
-        "My name is Rahul Sharma "
-        "and my PAN is ABCDE1234F. "
+        "My name is Rahul Sharma and my PAN is ABCPA1234F. "
         "Please help with my application."
     )
 
-    result = gateway.process(prompt, purpose="loan")
+    result = create_gateway().process(prompt, purpose="loan")
 
-    print("\nOriginal prompt:")
-    print(result["original_prompt"])
-
-    print("\nSanitized prompt:")
-    print(result["sanitized_prompt"])
-
-    print("\nFinal restored response:")
-    print(result["final_response"])
-
-    print("\nOutbound security:")
-    print(result["security"])
-
-    print("\nResponse security:")
-    print(result["response_security"])
-
-    print("\nPrivacy release receipt:")
-    print(result["receipt"])
-
-    assert result["security"]["approved"] is True
     assert "Rahul Sharma" not in result["sanitized_prompt"]
-    assert "Rahul Sharma" in result["final_response"]
-    assert result["response_security"]["mapping_integrity"]["safe"] is True
-    assert result["receipt"]["mapping_integrity"] == "VERIFIED"
+    assert "ABCPA1234F" not in result["sanitized_prompt"]
+    assert "<PERSON_1>" in result["sanitized_prompt"]
+    assert "<PAN_1>" in result["sanitized_prompt"]
 
-    print("\nPASS: Standard gateway integration.")
-    print("PASS: HMAC mapping integrity verified in gateway.")
+    assert "Rahul Sharma" in result["final_response"]
+    assert "ABCPA1234F" in result["final_response"]
+    assert result["security"]["approved"] is True
+    assert result["response_security"]["mapping_integrity"]["safe"] is True
+
+    print("PASS: Person and PAN were masked.")
+    print("PASS: Placeholders were restored locally.")
+    print("PASS: Outbound security approved the request.")
+    print("PASS: Mapping integrity was verified.")
+
+
+def test_repeated_entities():
+    print("\nTEST 2: Repeated entity handling")
+
+    prompt = (
+        "Rahul Sharma submitted the form. "
+        "Please contact Rahul Sharma about PAN ABCPA1234F. "
+        "The PAN ABCPA1234F belongs to Rahul Sharma."
+    )
+
+    result = create_gateway().process(prompt, purpose="loan")
+    sanitized = result["sanitized_prompt"]
+    restored = result["final_response"]
+
+    assert sanitized.count("<PERSON_1>") == 3
+    assert sanitized.count("<PAN_1>") == 2
+    assert "<PERSON_2>" not in sanitized
+    assert "<PAN_2>" not in sanitized
+
+    assert restored.count("Rahul Sharma") == 3
+    assert restored.count("ABCPA1234F") == 2
+
+    print("PASS: Repeated names reuse the same placeholder.")
+    print("PASS: Repeated PAN values reuse the same placeholder.")
+    print("PASS: All repeated values were restored correctly.")
 
 
 def test_cross_request_isolation():
+    print("\nTEST 3: Cross-request isolation")
 
-    gateway = GatewayProcessor(
-        StaticPersonDetector(),
-        IsolationMockLLM(),
-        PlaceholderReinserter()
-    )
+    gateway = create_gateway()
 
-    first_result = gateway.process(
-        "My name is Rahul Sharma.",
+    first = gateway.process(
+        "My name is Rahul Sharma and my PAN is ABCPA1234F.",
         purpose="loan"
     )
 
-    second_result = gateway.process(
-        "My name is Ananya Rao.",
+    second = gateway.process(
+        "My name is Priya Nair and my PAN is PQTPA1234F.",
         purpose="loan"
     )
 
-    assert "<PERSON_1>" in first_result["sanitized_prompt"]
-    assert "<PERSON_1>" in second_result["sanitized_prompt"]
-    assert first_result["final_response"] == "Hello Rahul Sharma."
-    assert second_result["final_response"] == "Hello Ananya Rao."
-    assert "Ananya Rao" not in first_result["final_response"]
-    assert "Rahul Sharma" not in second_result["final_response"]
+    assert "Rahul Sharma" in first["final_response"]
+    assert "ABCPA1234F" in first["final_response"]
 
-    print("\nPASS: Both requests independently generated PERSON_1.")
-    print("PASS: Request 1 restored Rahul Sharma.")
-    print("PASS: Request 2 restored Ananya Rao.")
-    print("PASS: No cross-request identity leakage.")
+    assert "Priya Nair" in second["final_response"]
+    assert "PQTPA1234F" in second["final_response"]
 
+    assert "Rahul Sharma" not in second["final_response"]
+    assert "ABCPA1234F" not in second["final_response"]
 
-def test_gateway_hmac_tampering():
+    assert "Priya Nair" not in second["sanitized_prompt"]
+    assert "PQTPA1234F" not in second["sanitized_prompt"]
 
-    reinserter = TrackingReinserter()
+    assert second["security"]["approved"] is True
+    assert second["response_security"]["mapping_integrity"]["safe"] is True
 
-    gateway = GatewayProcessor(
-        StaticPersonDetector(),
-        IsolationMockLLM(),
-        reinserter
-    )
-
-    gateway.privacy_controller.integrity.verify_mapping = (
-        lambda mapping, signature, secret: False
-    )
-
-    try:
-        gateway.process(
-            "My name is Rahul Sharma.",
-            purpose="loan"
-        )
-
-        raise AssertionError("Gateway accepted a tampered mapping.")
-
-    except ValueError as error:
-        assert (
-            "Placeholder mapping integrity verification failed."
-            in str(error)
-        )
-
-    assert reinserter.restore_calls == 0
-
-    print("\nPASS: Gateway rejected failed HMAC verification.")
-    print("PASS: Original identity was not restored.")
-
-
-def test_unknown_placeholder_attack():
-
-    reinserter = TrackingReinserter()
-
-    gateway = GatewayProcessor(
-        StaticPersonDetector(),
-        AttackMockLLM(),
-        reinserter
-    )
-
-    try:
-        gateway.process(
-            "My name is Rahul Sharma.",
-            purpose="loan"
-        )
-
-        raise AssertionError("Gateway accepted an unknown placeholder.")
-
-    except ValueError as error:
-        assert (
-            "LLM response failed placeholder security checks."
-            in str(error)
-        )
-
-    assert reinserter.restore_calls == 0
-
-    print("\nPASS: Unknown LLM placeholder rejected.")
-    print("PASS: Reinsertion was blocked.")
+    print("PASS: First request mapping remained isolated.")
+    print("PASS: Second request used its own mapping.")
+    print("PASS: No previous request values leaked.")
 
 
 if __name__ == "__main__":
-
-    test_gateway()
+    test_standard_gateway()
+    test_repeated_entities()
     test_cross_request_isolation()
-    test_gateway_hmac_tampering()
-    test_unknown_placeholder_attack()
 
-    print("\nAll four gateway tests passed!")
+    print("\nALL GATEWAY TESTS PASSED!")

@@ -119,7 +119,10 @@ class GatewayProcessor:
                             value
                         )
 
-                        if str(replacement) == value or entity_type == "EMI":
+                        if (
+                            str(replacement) == value
+                            or entity_type == "EMI"
+                        ):
                             replacement = self._create_placeholder(
                                 entity_type,
                                 value,
@@ -131,6 +134,7 @@ class GatewayProcessor:
                 elif action == "GENERALIZE":
 
                     if entity_type in {"AGE", "INCOME"}:
+
                         replacement = self.transformer.transform(
                             entity_type,
                             value
